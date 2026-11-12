@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MergeTools Compare</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --bg:#0b0e14; --old:#e8473c; --new:#2ec846; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); overflow:hidden;
+    font:600 14px/1.2 "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#fff; }
+  .stage { position:absolute; inset:0; cursor:ew-resize; user-select:none; -webkit-user-select:none;
+    touch-action:pan-y; outline:none; background:var(--bg); }
+  .stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+    pointer-events:none; }
+  .before { clip-path:inset(0 calc(100% - var(--split, 50%)) 0 0); }
+  .line { position:absolute; top:0; bottom:0; left:var(--split, 50%); width:2px; margin-left:-1px;
+    background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.3); pointer-events:none; }
+  .knob { position:absolute; top:50%; left:50%; width:44px; height:44px; margin:-22px 0 0 -22px;
+    border-radius:50%; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.45); }
+  .knob::before, .knob::after { content:""; position:absolute; top:50%; margin-top:-6px;
+    border:6px solid transparent; }
+  .knob::before { left:7px; border-right:8px solid #23262d; }
+  .knob::after { right:7px; border-left:8px solid #23262d; }
+  .tag { position:absolute; top:12px; display:flex; align-items:center; gap:8px; pointer-events:none;
+    text-shadow:0 1px 3px #000; }
+  .tag i { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-style:normal;
+    font-size:16px; }
+  .tag.old { left:12px; } .tag.old i { background:var(--old); }
+  .tag.new { right:12px; } .tag.new i { background:var(--new); }
+  .hint { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); padding:5px 12px;
+    border-radius:999px; background:rgba(0,0,0,.55); font-weight:500; font-size:12px; pointer-events:none;
+    transition:opacity .4s; }
+  .moved .hint { opacity:0; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+     aria-label="Before and after: drag to compare">
+  <img class="after" id="b" alt="">
+  <img class="before" id="a" alt="">
+  <span class="tag old"><i>&#10005;</i><span id="la">Before</span></span>
+  <span class="tag new"><span id="lb">After</span><i>&#10003;</i></span>
+  <span class="line"><span class="knob"></span></span>
+  <span class="hint">Drag to compare</span>
+</div>
+<script>
+(function () {
+  // compare.html?a=<before image>&b=<after image>&la=<before label>&lb=<after label>
+  // Images may only come from this site or from Superhive's asset server.
+  var q = new URLSearchParams(location.search);
+  function safe(u, fallback) {
+    if (!u) return fallback;
+    try {
+      var url = new URL(u, location.href);
+      if (url.origin === location.origin || url.hostname === "assets.superhivemarket.com") return url.href;
+    } catch (e) {}
+    return fallback;
+  }
+  var stage = document.getElementById("stage");
+  document.getElementById("a").src = safe(q.get("a"), "img/cylinder-1.0.6.jpg");
+  document.getElementById("b").src = safe(q.get("b"), "img/cylinder-1.0.18.jpg");
+  document.getElementById("la").textContent = (q.get("la") || "MergeTools 1.0.6").slice(0, 40);
+  document.getElementById("lb").textContent = (q.get("lb") || "MergeTools 1.0.18").slice(0, 40);
+  document.getElementById("a").alt = document.getElementById("la").textContent;
+  document.getElementById("b").alt = document.getElementById("lb").textContent;
+  function set(p) {
+    p = Math.max(0, Math.min(100, p));
+    stage.style.setProperty("--split", p + "%");
+    stage.setAttribute("aria-valuenow", Math.round(p));
+  }
+  function at(e) {
+    var r = stage.getBoundingClientRect();
+    set((e.clientX - r.left) / r.width * 100);
+    stage.classList.add("moved");
+  }
+  stage.addEventListener("pointerdown", function (e) { stage.setPointerCapture(e.pointerId); at(e); });
+  stage.addEventListener("pointermove", function (e) { if (stage.hasPointerCapture(e.pointerId)) at(e); });
+  stage.addEventListener("keydown", function (e) {
+    var v = +stage.getAttribute("aria-valuenow");
+    if (e.key === "ArrowLeft") { set(v - 5); e.preventDefault(); }
+    if (e.key === "ArrowRight") { set(v + 5); e.preventDefault(); }
+  });
+  set(+(q.get("s") || 50));
+})();
+</script>
+</body>
+</html>
